@@ -1,0 +1,19 @@
+{
+  "name": "stripesubs",
+  "version": "1.0.0",
+  "description": "Stripe subscription task",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Hanzala Afzal",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.0.1",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "joi": "^17.4.2",
+    "mongoose": "^6.0.9",
+    "stripe": "^8.178.0"
+  }
+}
