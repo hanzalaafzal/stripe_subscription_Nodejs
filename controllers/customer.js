@@ -1,9 +1,12 @@
 const Joi = require('joi')
 const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 require('dotenv').config();
 
 const stripe = require('stripe')(`${process.env.STRIPE_KEY}`)
 const mongoose = require('../config/database');
+const RegisterModel = require('../models/CustomerRegistration')
+const LoginModel = require('../models/CustomerLogin')
 
 
 
@@ -29,12 +32,11 @@ async function getAllCustomers(emails){
     return customer;
 }
 
-async function saveCustomerDB(Model,body,customerId){
+async function saveCustomerDB(model,body,customerId){
 
   const salt=bcrypt.genSaltSync(10)
   const hashedPassword=bcrypt.hashSync(body.password,salt)
-
-  let customer = new Model({
+  let customer = new model({
     name: body.name,
     email: body.email,
     address: body.address,
@@ -42,19 +44,10 @@ async function saveCustomerDB(Model,body,customerId){
     customer_id:customerId,
     password: hashedPassword
   });
-
   const result=await customer.save();
   return result;
 }
 
-const customerSchema = mongoose.Schema({
-  name: { type:String, required:true },
-  email: { type:String , required:true, unique:true },
-  address: String,
-  city: { type:String },
-  customer_id: { type:String,required:true },
-  password: { type:String }
-})
 
 module.exports.registration = (req,res) => {
 
@@ -84,8 +77,8 @@ module.exports.registration = (req,res) => {
         addCustomerStripe(req.body)
         .then((value2) => {
           console.log('user created in Stripe')
-          const customerModel = mongoose.model('customers',customerSchema)
-          saveCustomerDB(customerModel,req.body,value2.id)
+
+          saveCustomerDB(RegisterModel,req.body,value2.id)
           .then((value3) => {
             res.send({
               status: 'ok',
@@ -112,4 +105,55 @@ module.exports.registration = (req,res) => {
   }
 }
 
-module.exports.authentication = (req,res)
+async function authenticateCustomer(body,res){
+
+  let validationSchema = Joi.object({
+    email: Joi.string().required(),
+    password: Joi.string().required()
+  });
+  let validate = validationSchema.validate(body)
+  if(validate.error){
+    res.send(validate.error).status(400)
+  }else{
+
+    let user=LoginModel.findOne({
+      email:body.email
+    },(err,user) => {
+      if(err) res.send({error: 'invalid_credentials'}).status(400)
+
+      if(user){
+
+        const validatePassword= bcrypt.compareSync(body.password,user.password);
+        if(!validatePassword){
+          res.send({
+            error: 'invalid_credentials'
+          }).status(400)
+        }else{
+          const token = jwt.sign({
+            name: user.name,
+            email: user.email,
+            customer_id:user.customer_id,
+          }, 'hanzala')
+
+          res.send({
+            status:'authenticated',
+            token:token
+          });
+        }
+
+      }else{
+        res.send({
+          error:"invalid_credentials"
+        }).status(400)
+      }
+    })
+
+  }
+}
+
+module.exports.authentication = (req,res) => {
+
+authenticateCustomer(req.body,res)
+
+
+}
