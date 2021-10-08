@@ -1,7 +1,7 @@
 const Joi = require('joi')
 require('dotenv').config();
 const stripe = require('stripe')(`${process.env.STRIPE_KEY}`)
-const mongoose = require('../config/database');
+
 
 async function addCard(body){
   const param = {
