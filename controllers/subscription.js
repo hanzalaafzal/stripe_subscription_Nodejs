@@ -62,3 +62,66 @@ module.exports.doSubscribtion = (req,res) => {
 
   }
 }
+
+async function Plan(plan){
+  const retrievedPlan = await stripe.plans.retrieve(
+    plan
+  );
+  return retrievedPlan;
+}
+
+async function Plans(){
+  const plans = await stripe.plans.list({
+    active:true,
+  })
+  return plans
+}
+
+async function getSubscriptions(customer_id){
+  const subscriptions = await stripe.subscriptions.list({
+    customer:customer_id
+  });
+  return subscriptions;
+}
+
+module.exports.getPlans = (req,res) => {
+  Plans()
+  .then((subs) => {
+    res.status(200).send(subs);
+  })
+  .catch((err) => {
+    res.status(400).send({
+      status: "error",
+      error: err
+    });
+  })
+}
+
+module.exports.getPlan = (req,res) => {
+  Plan(req.params.plan)
+  .then((plan) => {
+    res.status(200).send(plan)
+  })
+  .catch((err) => {
+    res.status(400).send({
+      status: "error",
+      error: err
+    });
+  })
+}
+
+module.exports.getSubscriptions = (req,res) => {
+  console.log('reading subs');
+  getSubscriptions(req.customer.customer_id)
+  .then((subs) => {
+      res.status(200).send({
+        subs:subs,
+        customer:req.customer
+      })
+  }).catch((err) => {
+    res.status(400).send({
+      error : 'SUBS1',
+      err: err
+    })
+  })
+}
